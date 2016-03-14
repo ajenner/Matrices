@@ -154,21 +154,19 @@ void matmul(struct complex ** A, struct complex ** B, struct complex ** C, int a
 /* the fast version of matmul written by the team */
 void team_matmul(struct complex ** A, struct complex ** B, struct complex ** C, int a_rows, int a_cols, int b_cols) {
   int i, j, k;
-#pragma omp parallel for
-  for ( i = 0; i < a_dim1; i++ ) {
-    for( j = 0; j < b_dim2; j++ ) {
-      struct complex sum;
-      sum.real = 0.0;
-      sum.imag = 0.0;
-      for ( k = 0; k < a_dim2; k++ ) {
+  float s0, s1;
+#pragma omp parallel for if (a_rows >= 150) private(i,j,k,s0,s1)
+  for ( i = 0; i < a_rows; i++ ) {
+    for ( k = 0; k < a_cols; k++ ) {
+      for( j = 0; j < b_cols; j++ ) {
         // the following code does: sum += A[i][k] * B[k][j];
-        struct complex product;
-        product.real = A[i][k].real * B[k][j].real - A[i][k].imag * B[k][j].imag;
-        product.imag = A[i][k].real * B[k][j].imag + A[i][k].imag * B[k][j].real;
-        sum.real += product.real;
-        sum.imag += product.imag;
+        s0 = A[i][k].real * B[k][j].real; 
+        s0 -= A[i][k].imag * B[k][j].imag;
+        s1 = A[i][k].real * B[k][j].imag;
+        s1 += A[i][k].imag * B[k][j].real;
+        C[i][j].real += s0;
+        C[i][j].imag += s1;
       }
-      C[i][j] = sum;
     }
   }
 }
